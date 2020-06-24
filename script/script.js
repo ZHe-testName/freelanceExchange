@@ -12,10 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalOrder = document.getElementById("order_read");
   const modalActive = document.getElementById("order_active");
 
-  let orders = [];
-
+let orders = JSON.parse(localStorage.getItem('freeOrders')) || [];
+console.log(orders);
   
-
+const toStorage = () => {
+  localStorage.setItem('freeOrders', JSON.stringify(orders));
+};
  
 
   const renderOrders = () => {
@@ -23,9 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
     orderTable.textContent = "";
 
     orders.forEach((order, i) => {
-
       orderTable.innerHTML += `
-      <tr class="order ${order.active ? "taken" : "" }" data-number-order = "${i}">
+      <tr class="order ${order.active ? "taken" : "" }" data-number-order = "${i}"  data-number-id = "${i}">
         <td>${i+1}</td>
         <td>${order.title}</td>
         <td class = "${order.currency}"></td>
@@ -36,12 +37,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const handlerModal = (event) => {
 
-    console.log(event);
+    
     const target = event.target;
 
     const modal = target.closest(".order-modal");
 
     const order = orders[modal.id];
+
+    const baseAction = () => {
+      modal.style.display = 'none';
+
+      toStorage();
+      renderOrders();
+    };
 
 
     if(target.closest(".close") || target === modal){
@@ -49,7 +57,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if(target.classList.contains("get-order")){
-      console.log(modal.id);    
+        order.active = true;
+        baseAction();
+    }
+
+    if(target.id === 'capitulation'){
+      order.active = false;
+      baseAction();
+    }
+
+    if(target.id === 'ready'){
+      
+      orders.splice(orders.indexOf(order), 1);
+
+      baseAction();
     }
   }
 
@@ -58,12 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const { title, firstName, email, phone, description, amount,
     currency, deadline, active = false } = order;
+    
 
-    console.log(order);
-
-
-    const modal = order.active ? modalActive : modalOrder;
-
+    const modal = active ? modalActive : modalOrder;
+   
 
     const firstNameBlock = modal.querySelector(".firstName");
     const titleBlock = modal.querySelector(".modal-title");
@@ -75,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const phoneBlock = modal.querySelector(".phone");
 
 
-    modal.numberOrder = numberOrder;
+    modal.id = numberOrder;
     titleBlock.textContent = order.title;
     firstNameBlock.textContent = order.firstName;
     emailBlock.textContent = order.email;
@@ -85,9 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
     currencyBlock.className = "currency_img";
     currencyBlock.classList.add(order.currency);
     countBlock.textContent = order.amount;
-    phoneBlock ? phoneBlock.href = "tel:" + order.phone : "" ;
-    
 
+    phoneBlock ? phoneBlock.href = "tel:" + order.phone : "" ;
     
 
 
@@ -104,7 +122,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const target = event.target;
     const targetOrder = target.closest("tr");
     if(targetOrder){
-      opemModal(targetOrder.dataset.numberOrder)
+      opemModal(targetOrder.dataset.numberOrder);
+      console.log(targetOrder);
     }
   });
 
@@ -132,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
 
     const obj = {};
+    obj.active = false;
 
     ////////////////first variant
     /*
@@ -173,12 +193,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ////////////third variant
     //с помощю спред оператора "..."
+    
     [...formCastomer.elements].forEach((elem) => {
 
       if ((elem.tagName === "INPUT" && elem.type !== "radio") ||
         (elem.type === "radio" && elem.checked) ||
         elem.tagName === "TEXTAREA") {
         obj[elem.name] = elem.value;
+        
         //пороверяем,если елемент не радио,то очищаем
         //value в поточном елементе формы
         /*if(elem.type !== "radio"){
@@ -190,7 +212,8 @@ document.addEventListener("DOMContentLoaded", () => {
     formCastomer.reset();
 
     orders.push(obj);
-    console.log(orders);
+
+    toStorage();
 
   });
 
